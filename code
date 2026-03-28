@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LinkedIn Growth Engine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–navy: #0a1628;
+–navy-mid: #112240;
+–navy-light: #1e3a5f;
+–gold: #f0a500;
+–gold-light: #ffc93c;
+–cream: #faf7f2;
+–text: #e8e0d4;
+–text-dim: #8a9bb0;
+–card: rgba(255,255,255,0.04);
+–border: rgba(255,255,255,0.08);
+}
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: var(–navy);
+color: var(–text);
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background:
+radial-gradient(ellipse at 15% 15%, rgba(240,165,0,0.07) 0%, transparent 50%),
+radial-gradient(ellipse at 85% 85%, rgba(30,58,95,0.6) 0%, transparent 50%);
+pointer-events: none;
+z-index: 0;
+}
+
+.app {
+position: relative;
+z-index: 1;
+max-width: 960px;
+margin: 0 auto;
+padding: 36px 20px 60px;
+}
+
+.header { margin-bottom: 40px; }
+.header-top {
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 16px;
+flex-wrap: wrap;
+}
+.header h1 {
+font-family: ‘DM Serif Display’, serif;
+font-size: clamp(30px, 5vw, 46px);
+line-height: 1.1;
+color: var(–cream);
+}
+.header h1 span { color: var(–gold); font-style: italic; }
+.header p {
+margin-top: 8px;
+color: var(–text-dim);
+font-size: 13px;
+font-weight: 300;
+letter-spacing: 0.03em;
+}
+.badge {
+background: rgba(240,165,0,0.12);
+border: 1px solid rgba(240,165,0,0.28);
+color: var(–gold-light);
+padding: 7px 16px;
+border-radius: 20px;
+font-size: 12px;
+font-weight: 600;
+white-space: nowrap;
+letter-spacing: 0.06em;
+flex-shrink: 0;
+}
+
+/* WEEK TRACKER */
+.week-bar {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 22px 26px;
+margin-bottom: 28px;
+display: flex;
+align-items: center;
+gap: 24px;
+flex-wrap: wrap;
+}
+.week-label {
+font-size: 11px;
+color: var(–text-dim);
+text-transform: uppercase;
+letter-spacing: 0.12em;
+flex-shrink: 0;
+}
+.progress-wrap { flex: 1; min-width: 180px; }
+.progress-track {
+height: 6px;
+background: rgba(255,255,255,0.08);
+border-radius: 99px;
+overflow: hidden;
+}
+.progress-fill {
+height: 100%;
+background: linear-gradient(90deg, var(–gold), var(–gold-light));
+border-radius: 99px;
+transition: width 0.5s ease;
+}
+.progress-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+.progress-labels span { font-size: 11px; color: var(–text-dim); }
+.week-stats { display: flex; gap: 28px; }
+.stat { text-align: center; }
+.stat-num {
+font-family: ‘DM Serif Display’, serif;
+font-size: 26px;
+color: var(–gold);
+line-height: 1;
+}
+.stat-label { font-size: 11px; color: var(–text-dim); margin-top: 3px; }
+.counter-controls { display: flex; align-items: center; gap: 8px; }
+.counter-btn {
+width: 30px; height: 30px;
+border-radius: 50%;
+border: 1px solid var(–border);
+background: var(–card);
+color: var(–text);
+cursor: pointer;
+font-size: 18px;
+display: flex; align-items: center; justify-content: center;
+transition: all 0.2s;
+}
+.counter-btn:hover { background: rgba(240,165,0,0.2); border-color: var(–gold); color: var(–gold); }
+
+/* GRID */
+.grid-2 {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 16px;
+margin-bottom: 16px;
+}
+@media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+.full { grid-column: 1 / -1; }
+
+/* CARD */
+.card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 24px;
+transition: border-color 0.2s;
+}
+.card:hover { border-color: rgba(240,165,0,0.18); }
+.card-title {
+font-size: 11px;
+text-transform: uppercase;
+letter-spacing: 0.13em;
+color: var(–gold);
+margin-bottom: 18px;
+font-weight: 600;
+}
+
+/* EVENTS */
+.event-item {
+display: flex;
+align-items: flex-start;
+gap: 14px;
+padding: 12px 0;
+border-bottom: 1px solid var(–border);
+}
+.event-item:first-child { padding-top: 0; }
+.event-item:last-child { border-bottom: none; padding-bottom: 0; }
+.event-icon {
+width: 34px; height: 34px;
+border-radius: 9px;
+background: rgba(240,165,0,0.1);
+display: flex; align-items: center; justify-content: center;
+font-size: 16px;
+flex-shrink: 0;
+}
+.event-info strong {
+display: block;
+font-size: 13px;
+font-weight: 600;
+color: var(–cream);
+margin-bottom: 2px;
+}
+.event-info span {
+font-size: 12px;
+color: var(–text-dim);
+line-height: 1.5;
+}
+.event-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.pill {
+display: inline-block;
+background: rgba(240,165,0,0.1);
+border: 1px solid rgba(240,165,0,0.2);
+color: var(–gold-light);
+font-size: 10px;
+padding: 2px 8px;
+border-radius: 10px;
+font-weight: 600;
+letter-spacing: 0.04em;
+}
+.pill.blue {
+background: rgba(100,160,255,0.1);
+border-color: rgba(100,160,255,0.25);
+color: #7eb8ff;
+}
+.pill.blue.link {
+cursor: pointer;
+text-decoration: none;
+display: inline-block;
+transition: background 0.2s, color 0.2s;
+}
+.pill.blue.link:hover { background: rgba(100,160,255,0.22); color: #aed4ff; }
+
+/* AI GENERATOR */
+.ai-box {
+margin-top: 18px;
+padding-top: 16px;
+border-top: 1px solid var(–border);
+}
+.ai-box-label {
+font-size: 10px;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(–text-dim);
+margin-bottom: 8px;
+font-weight: 600;
+}
+.ai-row { display: flex; gap: 8px; }
+.ai-input {
+flex: 1;
+background: rgba(0,0,0,0.25);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 8px 12px;
+color: var(–text);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 12px;
+outline: none;
+transition: border-color 0.2s;
+}
+.ai-input:focus { border-color: rgba(240,165,0,0.45); }
+.ai-input::placeholder { color: var(–text-dim); }
+.ai-btn {
+background: var(–gold);
+color: var(–navy);
+border: none;
+border-radius: 8px;
+padding: 8px 16px;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+white-space: nowrap;
+transition: background 0.2s;
+flex-shrink: 0;
+}
+.ai-btn:hover { background: var(–gold-light); }
+.ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-result {
+margin-top: 10px;
+background: rgba(0,0,0,0.2);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 12px;
+font-size: 12.5px;
+line-height: 1.7;
+color: var(–text);
+white-space: pre-wrap;
+display: none;
+cursor: pointer;
+transition: border-color 0.2s;
+}
+.ai-result:hover { border-color: rgba(240,165,0,0.3); }
+.ai-result.loading { color: var(–text-dim); font-style: italic; }
+
+/* SEARCH GROUP ACTION */
+.search-group-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 8px;
+}
+.search-all-btn {
+font-size: 10px;
+color: var(–text-dim);
+background: transparent;
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 2px 8px;
+cursor: pointer;
+font-family: ‘DM Sans’, sans-serif;
+transition: all 0.2s;
+white-space: nowrap;
+}
+.search-all-btn:hover { border-color: rgba(240,165,0,0.35); color: var(–gold-light); }
+
+/* CONNECTIONS */
+.connection-item {
+display: flex;
+align-items: flex-start;
+gap: 14px;
+padding: 12px 0;
+border-bottom: 1px solid var(–border);
+}
+.connection-item:first-child { padding-top: 0; }
+.connection-item:last-child { border-bottom: none; padding-bottom: 0; }
+.avatar {
+width: 38px; height: 38px;
+border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+font-size: 13px;
+font-weight: 700;
+color: var(–cream);
+flex-shrink: 0;
+font-family: ‘DM Serif Display’, serif;
+}
+.conn-info strong {
+display: block;
+font-size: 13px;
+font-weight: 600;
+color: var(–cream);
+margin-bottom: 1px;
+}
+.conn-role {
+font-size: 12px;
+color: var(–text-dim);
+margin-bottom: 5px;
+}
+.conn-why {
+font-size: 11px;
+color: var(–text-dim);
+background: rgba(255,255,255,0.03);
+border-left: 2px solid rgba(240,165,0,0.3);
+padding: 4px 8px;
+border-radius: 0 6px 6px 0;
+line-height: 1.5;
+}
+
+/* SEARCH */
+.focus-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.focus-tab {
+padding: 7px 14px;
+border-radius: 20px;
+border: 1px solid var(–border);
+background: transparent;
+color: var(–text-dim);
+font-family: ‘DM Sans’, sans-serif;
+font-size: 12px;
+cursor: pointer;
+transition: all 0.2s;
+font-weight: 500;
+}
+.focus-tab:hover { border-color: rgba(240,165,0,0.3); color: var(–text); }
+.focus-tab.active {
+background: rgba(240,165,0,0.15);
+border-color: rgba(240,165,0,0.4);
+color: var(–gold-light);
+}
+.search-panel { display: none; }
+.search-panel.active { display: block; }
+.search-group { margin-bottom: 16px; }
+.search-group:last-child { margin-bottom: 0; }
+.search-group-label {
+font-size: 10px;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(–text-dim);
+margin-bottom: 8px;
+font-weight: 600;
+}
+.search-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.search-tag {
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 6px 12px;
+font-size: 12px;
+color: var(–text);
+cursor: pointer;
+transition: all 0.2s;
+user-select: none;
+}
+.search-tag:hover { background: rgba(240,165,0,0.12); border-color: rgba(240,165,0,0.35); color: var(–gold-light); }
+.search-tag.copied { background: rgba(240,165,0,0.2); border-color: var(–gold); color: var(–gold); }
+.search-hint { font-size: 11px; color: var(–text-dim); margin-top: 14px; font-style: italic; }
+</style>
+
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>LinkedIn <span>Growth</span><br>Engine</h1>
+        <p>UWE Bristol · PR, Marketing, Comms & Events · Class of 2027</p>
+      </div>
+      <div class="badge">⚡ 500+ before graduation</div>
+    </div>
+  </div>
+
+  <!-- WEEK TRACKER -->
+
+  <div class="week-bar">
+    <div class="week-label">This week</div>
+    <div class="progress-wrap">
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="progressLabel">0 / 100 sent</span>
+        <span>Weekly limit</span>
+      </div>
+    </div>
+    <div class="week-stats">
+      <div class="stat">
+        <div class="stat-num" id="sentStat">0</div>
+        <div class="stat-label">Sent</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="leftStat">100</div>
+        <div class="stat-label">Remaining</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="dailyStat">0</div>
+        <div class="stat-label">Today</div>
+      </div>
+    </div>
+    <div class="counter-controls">
+      <button class="counter-btn" onclick="adjust(-5)">−</button>
+      <button class="counter-btn" onclick="adjust(5)">+</button>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+```
+<!-- NETWORKING EVENTS -->
+<div class="card">
+  <div class="card-title">📅 Networking events to attend</div>
+
+  <div class="event-item">
+    <div class="event-icon">🇬🇧</div>
+    <div class="event-info">
+      <strong>PRCA Networking Nights</strong>
+      <span>UK's main PR trade body. Regular mixers and student events, free or low cost.</span>
+      <div class="event-pills"><span class="pill">UK-wide</span><span class="pill">Free/cheap</span><a href="https://www.prca.org.uk/events" target="_blank" class="pill blue link">prca.org.uk →</a></div>
+    </div>
+  </div>
+
+  <div class="event-item">
+    <div class="event-icon">🎓</div>
+    <div class="event-info">
+      <strong>CIPR Student Conference</strong>
+      <span>Annual event packed with agency professionals actively looking to meet graduates.</span>
+      <div class="event-pills"><span class="pill">Annual</span><span class="pill">Student-focused</span><a href="https://cipr.co.uk/events" target="_blank" class="pill blue link">cipr.co.uk →</a></div>
+    </div>
+  </div>
+
+  <div class="event-item">
+    <div class="event-icon">📣</div>
+    <div class="event-info">
+      <strong>Bristol Media & Creative Meetups</strong>
+      <span>Regular informal meetups for comms, marketing and media people in Bristol.</span>
+      <div class="event-pills"><span class="pill">Bristol</span><span class="pill">Monthly</span><a href="https://www.eventbrite.co.uk/d/united-kingdom--bristol/media-networking/" target="_blank" class="pill blue link">Eventbrite →</a></div>
+    </div>
+  </div>
+
+  <div class="event-item">
+    <div class="event-icon">🎪</div>
+    <div class="event-info">
+      <strong>Festival of Marketing</strong>
+      <span>One of the UK's biggest marketing events. Student tickets available. Huge for connections.</span>
+      <div class="event-pills"><span class="pill">London</span><span class="pill">Annual · Oct</span><a href="https://www.festivalofmarketing.com" target="_blank" class="pill blue link">festivalofmarketing.com →</a></div>
+    </div>
+  </div>
+
+  <div class="event-item">
+    <div class="event-icon">🎤</div>
+    <div class="event-info">
+      <strong>UWE Guest Lectures & Industry Days</strong>
+      <span>Connect with every speaker within 24hrs. Already in your world — easiest warm connection you'll make.</span>
+      <div class="event-pills"><span class="pill">On campus</span><span class="pill">Highest ROI</span><a href="https://www.uwe.ac.uk/events" target="_blank" class="pill blue link">uwe.ac.uk/events →</a></div>
+    </div>
+  </div>
+
+  <div class="event-item">
+    <div class="event-icon">🌐</div>
+    <div class="event-info">
+      <strong>LinkedIn Local Bristol</strong>
+      <span>In-person networking events for LinkedIn users. Comms-heavy crowd, free to attend.</span>
+      <div class="event-pills"><span class="pill">Bristol</span><span class="pill">Free</span><a href="https://www.linkedin.com/search/results/events/?keywords=linkedin%20local%20bristol" target="_blank" class="pill blue link">Search on LinkedIn →</a></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MESSAGE TEMPLATES -->
+<div class="card">
+  <div class="card-title">💬 Message templates</div>
+
+  <div class="search-group">
+    <div class="search-group-label">Connect</div>
+    <div class="search-tags">
+      <div class="search-tag" style="white-space:normal;line-height:1.5;" onclick="copyText(this, `Hi [Name], I'm a UWE student looking to get into PR — saw your role and it looks like exactly where I'd like to get to. Would love to connect.`)">Hi [Name], I'm a UWE student looking to get into PR — saw your role and it looks like exactly where I'd like to get to. Would love to connect.</div>
+    </div>
+  </div>
+
+  <div class="search-group">
+    <div class="search-group-label">Reply</div>
+    <div class="search-tags">
+      <div class="search-tag" style="white-space:normal;line-height:1.5;" onclick="copyText(this, `Thanks for connecting — I'm trying to understand how people break into PR. How did you get started?`)">Thanks for connecting — I'm trying to understand how people break into PR. How did you get started?</div>
+    </div>
+  </div>
+
+  <div class="search-group" style="margin-bottom:0;">
+    <div class="search-group-label">Follow-up</div>
+    <div class="search-tags">
+      <div class="search-tag" style="white-space:normal;line-height:1.5;" onclick="copyText(this, `That's really helpful, appreciate it. Is there anything you'd recommend I focus on while still at uni?`)">That's really helpful, appreciate it. Is there anything you'd recommend I focus on while still at uni?</div>
+    </div>
+  </div>
+
+  <div class="ai-box">
+    <div class="ai-box-label">✨ Generate a custom message</div>
+    <div class="ai-row">
+      <input class="ai-input" id="aiInput" placeholder="e.g. PR exec at a Bristol agency, 3 years in..." />
+      <button class="ai-btn" id="aiBtn" onclick="generateMsg()">Generate</button>
+    </div>
+    <div class="ai-result" id="aiResult" onclick="copyAiResult(this)"></div>
+  </div>
+
+</div>
+```
+
+  </div>
+
+  <!-- SEARCH TERMS -->
+
+  <div class="card full">
+    <div class="card-title">🔍 Search terms — click a term to open LinkedIn · click a section to search all</div>
+    <div class="focus-tabs" id="focusTabs"></div>
+    <div id="searchPanels"></div>
+    <p class="search-hint">💡 Use LinkedIn's People filter → add Location (Bristol, London, Manchester) and Connection degree (2nd) for best results.</p>
+  </div>
+
+</div>
+
+<script>
+  // ── DAILY RESET ──
+  const today = new Date().toDateString();
+  if (localStorage.getItem('li_date') !== today) {
+    localStorage.setItem('li_daily', '0');
+    localStorage.setItem('li_date', today);
+  }
+
+  let count = parseInt(localStorage.getItem('li_count') || '0');
+  let daily = parseInt(localStorage.getItem('li_daily') || '0');
+
+  // ── COPY TEXT (for message templates) ──
+  function copyText(el, text) {
+    navigator.clipboard.writeText(text).catch(() => {});
+    const original = el.textContent;
+    el.classList.add('copied');
+    el.textContent = '✓ Copied';
+    setTimeout(() => { el.classList.remove('copied'); el.textContent = original; }, 1500);
+  }
+
+  const focusAreas = [
+    {
+      id: 'alumni', label: '🎓 Alumni',
+      groups: [
+        { label: 'UWE-specific', terms: ['UWE Bristol PR', 'UWE Bristol marketing', 'UWE Bristol communications', 'UWE Bristol events', 'University West of England graduate'] },
+        { label: 'Role + graduate combo', terms: ['PR graduate Bristol', 'marketing graduate London', 'comms graduate UK', 'events graduate'] }
+      ]
+    },
+    {
+      id: 'agencies', label: '🏢 PR Agencies',
+      groups: [
+        { label: 'Junior roles', terms: ['PR account executive', 'PR assistant', 'junior PR consultant', 'PR coordinator', 'communications executive'] },
+        { label: 'By location', terms: ['PR executive Bristol', 'PR executive London', 'PR executive Manchester', 'PR agency Bristol', 'PR agency London'] },
+        { label: 'Small agency founders', terms: ['PR agency founder', 'PR consultant director', 'boutique PR director', 'independent PR agency'] }
+      ]
+    },
+    {
+      id: 'marketing', label: '📣 Marketing',
+      groups: [
+        { label: 'Junior titles', terms: ['marketing assistant', 'marketing coordinator', 'junior marketing executive', 'content coordinator', 'social media executive'] },
+        { label: 'In-house teams', terms: ['in-house marketing manager', 'brand communications', 'marketing executive FMCG', 'digital marketing executive'] }
+      ]
+    },
+    {
+      id: 'events', label: '🎤 Events',
+      groups: [
+        { label: 'Event roles', terms: ['events coordinator', 'events executive', 'event manager London', 'events assistant', 'experiential marketing'] },
+        { label: 'Broader', terms: ['event production', 'brand experience manager', 'sponsorship coordinator', 'venue manager London'] }
+      ]
+    },
+    {
+      id: 'recruiters', label: '📋 Recruiters',
+      groups: [
+        { label: 'Graduate & early careers', terms: ['graduate recruiter PR', 'early careers recruiter', 'campus recruiter marketing', 'graduate scheme manager', 'talent acquisition PR'] },
+        { label: 'Specialist recruiters', terms: ['PR recruiter', 'marketing recruiter London', 'comms recruiter', 'creative recruiter'] }
+      ]
+    },
+    {
+      id: 'inhouse', label: '🏬 In-House',
+      groups: [
+        { label: 'Comms & PR in brands', terms: ['internal communications', 'corporate communications', 'communications manager brand', 'PR manager in-house', 'head of comms'] },
+        { label: 'Sectors worth targeting', terms: ['comms charity sector', 'PR retail brand', 'communications NHS', 'marketing entertainment', 'comms tech company'] }
+      ]
+    }
+  ];
+
+  function renderSearch() {
+    document.getElementById('focusTabs').innerHTML = focusAreas.map((area, i) =>
+      `<button class="focus-tab ${i === 0 ? 'active' : ''}" onclick="switchTab('${area.id}')">${area.label}</button>`
+    ).join('');
+
+    document.getElementById('searchPanels').innerHTML = focusAreas.map((area, i) =>
+      `<div class="search-panel ${i === 0 ? 'active' : ''}" id="panel-${area.id}">
+        ${area.groups.map(g => {
+          const first = encodeURIComponent(g.terms[0]);
+          return `<div class="search-group">
+            <div class="search-group-header">
+              <div class="search-group-label">${g.label}</div>
+              <button class="search-all-btn" onclick="window.open('https://www.linkedin.com/search/results/people/?keywords=${first}','_blank')">Search all →</button>
+            </div>
+            <div class="search-tags">${g.terms.map(t =>
+              `<div class="search-tag" onclick="copyTerm(this,'${t}')">${t}</div>`
+            ).join('')}</div>
+          </div>`;
+        }).join('')}
+      </div>`
+    ).join('');
+  }
+
+  async function generateMsg() {
+    const input = document.getElementById('aiInput').value.trim();
+    if (!input) return;
+    const btn = document.getElementById('aiBtn');
+    const result = document.getElementById('aiResult');
+    btn.disabled = true;
+    btn.textContent = '...';
+    result.style.display = 'block';
+    result.className = 'ai-result loading';
+    result.textContent = 'Writing your message...';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          messages: [{ role: 'user', content: `Write a short LinkedIn connection message for a UWE Bristol PR & Marketing student (graduating 2027) to send to: ${input}. Requirements: under 280 chars, genuine and friendly, mentions UWE Bristol, no salesy language. Reply with just the message, nothing else.` }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === 'text')?.text || 'Could not generate — try again.';
+      result.className = 'ai-result';
+      result.textContent = text + '\n\n(click to copy)';
+      result._msg = text;
+    } catch {
+      result.className = 'ai-result';
+      result.textContent = 'Something went wrong — try again.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Generate';
+  }
+
+  function copyAiResult(el) {
+    if (!el._msg) return;
+    navigator.clipboard.writeText(el._msg).catch(() => {});
+    const prev = el.textContent;
+    el.textContent = '✓ Copied!';
+    setTimeout(() => { el.textContent = prev; }, 1500);
+  }
+
+  function switchTab(id) {
+    focusAreas.forEach((area, i) => {
+      document.querySelectorAll('.focus-tab')[i].classList.toggle('active', area.id === id);
+    });
+    document.querySelectorAll('.search-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `panel-${id}`);
+    });
+  }
+
+  function copyTerm(el, term) {
+    navigator.clipboard.writeText(term).catch(() => {});
+    window.open('https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(term), '_blank');
+    el.classList.add('copied');
+    el.textContent = '✓ ' + term;
+    setTimeout(() => { el.classList.remove('copied'); el.textContent = term; }, 1800);
+  }
+
+  function adjust(delta) {
+    count = Math.max(0, Math.min(100, count + delta));
+    daily = Math.max(0, daily + delta);
+    localStorage.setItem('li_count', count);
+    localStorage.setItem('li_daily', daily);
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const pct = (count / 100) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${count} / 100 sent`;
+    document.getElementById('sentStat').textContent = count;
+    document.getElementById('leftStat').textContent = 100 - count;
+    document.getElementById('dailyStat').textContent = daily;
+  }
+
+  renderSearch();
+  updateProgress();
+</script>
+
+</body>
+</html>
