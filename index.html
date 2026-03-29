@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>LinkedIn Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–bg: #f3f6f8;
+–card: #ffffff;
+–primary: #0a66c2;
+–primary-hover: #004182;
+–text: #1d2226;
+–text-dim: #5e6a75;
+–border: #dce6f1;
+–accent: #e7f3ff;
+–green: #0f9d58;
+–green-bg: #e8f5e9;
+–radius: 10px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+font-family: ‘DM Sans’, system-ui, -apple-system, sans-serif;
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+font-size: 14px;
+line-height: 1.5;
+-webkit-tap-highlight-color: transparent;
+}
+
+/* ── TOAST ── */
+.toast {
+position: fixed;
+bottom: 24px;
+left: 50%;
+transform: translateX(-50%) translateY(12px);
+background: #1d2226;
+color: #fff;
+font-size: 13px;
+font-weight: 500;
+padding: 10px 18px;
+border-radius: 24px;
+z-index: 999;
+opacity: 0;
+pointer-events: none;
+white-space: nowrap;
+transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show {
+opacity: 1;
+transform: translateX(-50%) translateY(0);
+}
+
+/* ── TOPBAR ── */
+.topbar {
+background: var(–card);
+border-bottom: 1px solid var(–border);
+height: 50px;
+display: flex;
+align-items: center;
+padding: 0 16px;
+position: sticky;
+top: 0;
+z-index: 100;
+}
+.topbar-title {
+font-size: 15px;
+font-weight: 700;
+color: var(–primary);
+letter-spacing: -0.2px;
+}
+
+/* ── LAYOUT ── */
+.main {
+padding: 12px 12px 80px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+/* ── CARD ── */
+.card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+overflow: hidden;
+}
+.card-head {
+padding: 13px 14px 0;
+margin-bottom: 12px;
+}
+.card-title {
+font-size: 11px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.09em;
+color: var(–text-dim);
+}
+.card-body { padding: 0 14px 14px; }
+
+/* ── SECTION LABEL ── */
+.sec-label {
+font-size: 10px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.09em;
+color: var(–text-dim);
+margin-bottom: 8px;
+}
+
+/* ── TOGGLE STRIP ── */
+.toggle-strip {
+display: flex;
+gap: 6px;
+margin-bottom: 12px;
+flex-wrap: wrap;
+}
+.toggle-btn {
+font-size: 13px;
+font-weight: 600;
+padding: 7px 14px;
+border-radius: 20px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+color: var(–text-dim);
+cursor: pointer;
+font-family: inherit;
+transition: all 0.15s;
+white-space: nowrap;
+}
+.toggle-btn.active {
+background: var(–primary);
+border-color: var(–primary);
+color: #fff;
+}
+.toggle-btn:active { opacity: 0.85; }
+
+/* ── GENERATE BUTTON ── */
+.gen-btn {
+width: 100%;
+background: var(–primary);
+color: #fff;
+border: none;
+border-radius: 8px;
+padding: 12px;
+font-size: 14px;
+font-weight: 600;
+font-family: inherit;
+cursor: pointer;
+transition: background 0.15s;
+margin-bottom: 14px;
+letter-spacing: -0.1px;
+}
+.gen-btn:active { background: var(–primary-hover); }
+
+/* ── TARGET RESULTS ── */
+.targets-list {
+display: flex;
+flex-direction: column;
+gap: 7px;
+}
+.target-item {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 11px 13px;
+border: 1px solid var(–border);
+border-radius: 8px;
+background: var(–bg);
+cursor: pointer;
+transition: border-color 0.15s, background 0.15s;
+text-align: left;
+width: 100%;
+font-family: inherit;
+}
+.target-item:active {
+border-color: var(–primary);
+background: var(–accent);
+}
+.target-item.fired {
+opacity: 0.38;
+}
+.target-num {
+font-size: 11px;
+font-weight: 700;
+color: var(–text-dim);
+min-width: 18px;
+flex-shrink: 0;
+}
+.target-text {
+flex: 1;
+font-size: 13px;
+color: var(–text);
+line-height: 1.35;
+}
+.target-tag {
+font-size: 10px;
+font-weight: 700;
+color: var(–text-dim);
+background: var(–border);
+border-radius: 4px;
+padding: 2px 6px;
+flex-shrink: 0;
+text-transform: uppercase;
+letter-spacing: 0.05em;
+}
+.targets-empty {
+text-align: center;
+color: var(–text-dim);
+font-size: 13px;
+padding: 20px 0 8px;
+}
+
+/* ── MESSAGE HUB ── */
+.msg-type-strip {
+display: flex;
+gap: 6px;
+margin-bottom: 12px;
+}
+.msg-type-btn {
+flex: 1;
+font-size: 12px;
+font-weight: 600;
+padding: 8px 6px;
+border-radius: 6px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+color: var(–text-dim);
+cursor: pointer;
+font-family: inherit;
+transition: all 0.15s;
+text-align: center;
+}
+.msg-type-btn.active {
+border-color: var(–primary);
+background: var(–accent);
+color: var(–primary);
+}
+
+.msg-cat-strip {
+display: flex;
+gap: 6px;
+overflow-x: auto;
+scrollbar-width: none;
+margin-bottom: 12px;
+-webkit-overflow-scrolling: touch;
+padding-bottom: 1px;
+}
+.msg-cat-strip::-webkit-scrollbar { display: none; }
+.msg-cat-btn {
+font-size: 11px;
+font-weight: 600;
+padding: 5px 10px;
+border-radius: 5px;
+border: 1px solid var(–border);
+background: var(–bg);
+color: var(–text-dim);
+cursor: pointer;
+font-family: inherit;
+white-space: nowrap;
+flex-shrink: 0;
+transition: all 0.15s;
+}
+.msg-cat-btn.active {
+background: var(–text);
+border-color: var(–text);
+color: #fff;
+}
+
+.msg-textarea {
+width: 100%;
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 11px 13px;
+font-size: 13px;
+font-family: inherit;
+color: var(–text);
+background: var(–bg);
+outline: none;
+resize: none;
+line-height: 1.55;
+min-height: 90px;
+transition: border-color 0.15s;
+display: block;
+}
+.msg-textarea:focus { border-color: var(–primary); background: #fff; }
+
+.msg-copy-btn {
+width: 100%;
+margin-top: 8px;
+background: var(–bg);
+border: 1.5px solid var(–border);
+border-radius: 7px;
+padding: 10px;
+font-size: 13px;
+font-weight: 600;
+color: var(–text-dim);
+cursor: pointer;
+font-family: inherit;
+transition: all 0.15s;
+}
+.msg-copy-btn:active { border-color: var(–primary); color: var(–primary); background: var(–accent); }
+.msg-copy-btn.copied { border-color: var(–green); color: var(–green); background: var(–green-bg); }
+
+/* ── COMPANY MODE ── */
+.company-input-row {
+display: flex;
+gap: 8px;
+margin-bottom: 14px;
+}
+.company-input {
+flex: 1;
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 11px 13px;
+font-size: 14px;
+font-family: inherit;
+color: var(–text);
+background: var(–bg);
+outline: none;
+min-width: 0;
+transition: border-color 0.15s;
+}
+.company-input:focus { border-color: var(–primary); background: #fff; }
+.company-input::placeholder { color: var(–text-dim); }
+.company-gen-btn {
+background: var(–primary);
+color: #fff;
+border: none;
+border-radius: 8px;
+padding: 11px 16px;
+font-size: 14px;
+font-weight: 600;
+font-family: inherit;
+cursor: pointer;
+white-space: nowrap;
+flex-shrink: 0;
+transition: background 0.15s;
+}
+.company-gen-btn:active { background: var(–primary-hover); }
+.company-hint {
+font-size: 12px;
+color: var(–text-dim);
+margin-bottom: 12px;
+line-height: 1.5;
+}
+.company-hint span {
+display: inline-block;
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 1px 6px;
+font-size: 11px;
+font-weight: 600;
+color: var(–text-dim);
+margin-left: 4px;
+}
+
+/* ── PROFILE CONTEXT ── */
+.profile-hint {
+font-size: 12px;
+color: var(–text-dim);
+margin-bottom: 10px;
+line-height: 1.5;
+}
+.profile-textarea {
+width: 100%;
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 11px 13px;
+font-size: 13px;
+font-family: inherit;
+color: var(–text);
+background: var(–bg);
+outline: none;
+resize: none;
+min-height: 90px;
+line-height: 1.5;
+margin-bottom: 10px;
+transition: border-color 0.15s;
+}
+.profile-textarea:focus { border-color: var(–primary); background: #fff; }
+.profile-textarea::placeholder { color: var(–text-dim); }
+
+.tone-strip {
+display: flex;
+gap: 6px;
+margin-bottom: 12px;
+}
+.tone-btn {
+flex: 1;
+font-size: 12px;
+font-weight: 600;
+padding: 8px 6px;
+border-radius: 6px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+color: var(–text-dim);
+cursor: pointer;
+font-family: inherit;
+text-align: center;
+transition: all 0.15s;
+}
+.tone-btn.active {
+border-color: var(–primary);
+background: var(–accent);
+color: var(–primary);
+}
+
+.analyse-btn {
+width: 100%;
+background: var(–primary);
+color: #fff;
+border: none;
+border-radius: 8px;
+padding: 12px;
+font-size: 14px;
+font-weight: 600;
+font-family: inherit;
+cursor: pointer;
+transition: background 0.15s;
+margin-bottom: 14px;
+}
+.analyse-btn:active { background: var(–primary-hover); }
+
+.context-out {
+display: none;
+flex-direction: column;
+gap: 10px;
+}
+.context-out.visible { display: flex; }
+
+.ctx-block {
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 12px 13px;
+background: var(–bg);
+}
+.ctx-block-label {
+font-size: 10px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(–text-dim);
+margin-bottom: 9px;
+}
+.ctx-tags {
+display: flex;
+flex-wrap: wrap;
+gap: 5px;
+}
+.ctx-tag {
+font-size: 11px;
+font-weight: 600;
+padding: 3px 9px;
+border-radius: 4px;
+background: var(–accent);
+color: var(–primary);
+}
+.ctx-tag.seniority {
+background: #fff8e1;
+color: #a07000;
+}
+.ctx-points {
+list-style: none;
+padding: 0;
+margin: 0;
+display: flex;
+flex-direction: column;
+gap: 5px;
+}
+.ctx-points li {
+font-size: 13px;
+color: var(–text);
+line-height: 1.4;
+padding-left: 14px;
+position: relative;
+}
+.ctx-points li::before {
+content: ‘·’;
+position: absolute;
+left: 0;
+color: var(–primary);
+font-weight: 700;
+}
+.ctx-msg-text {
+font-size: 13px;
+color: var(–text);
+line-height: 1.6;
+white-space: pre-wrap;
+}
+.ctx-copy-btn {
+width: 100%;
+margin-top: 9px;
+background: var(–bg);
+border: 1.5px solid var(–border);
+border-radius: 7px;
+padding: 9px;
+font-size: 13px;
+font-weight: 600;
+color: var(–primary);
+cursor: pointer;
+font-family: inherit;
+transition: all 0.15s;
+}
+.ctx-copy-btn:active { background: var(–accent); }
+</style>
+
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <span class="topbar-title">LinkedIn Engine</span>
+</div>
+
+<div class="main">
+
+  <!-- 1. DISCOVERY -->
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">🎯 Discovery</span></div>
+    <div class="card-body">
+      <div class="toggle-strip" id="focusStrip">
+        <button class="toggle-btn active" data-focus="agencies" onclick="setFocus(this)">Agencies</button>
+        <button class="toggle-btn" data-focus="inhouse" onclick="setFocus(this)">In-House</button>
+        <button class="toggle-btn" data-focus="recruiters" onclick="setFocus(this)">Recruiters</button>
+        <button class="toggle-btn" data-focus="mixed" onclick="setFocus(this)">Mixed</button>
+      </div>
+      <button class="gen-btn" onclick="generate()">Generate →</button>
+      <div class="targets-list" id="targetsList">
+        <div class="targets-empty">Choose a focus and tap Generate.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MESSAGE HUB -->
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">💬 Messages</span></div>
+    <div class="card-body">
+      <div class="msg-type-strip">
+        <button class="msg-type-btn active" data-type="connect" onclick="setMsgType(this)">Connect</button>
+        <button class="msg-type-btn" data-type="reply" onclick="setMsgType(this)">Reply</button>
+        <button class="msg-type-btn" data-type="followup" onclick="setMsgType(this)">Follow-up</button>
+      </div>
+      <div class="msg-cat-strip" id="msgCatStrip"></div>
+      <textarea class="msg-textarea" id="msgTextarea" rows="5"></textarea>
+      <button class="msg-copy-btn" id="msgCopyBtn" onclick="copyMsg()">Copy message</button>
+    </div>
+  </div>
+
+  <!-- 3. COMPANY MODE -->
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">🏢 Company Mode</span></div>
+    <div class="card-body">
+      <div class="company-hint">Target one company deeply — generates searches across roles, alumni, and hiring contacts.</div>
+      <div class="company-input-row">
+        <input class="company-input" id="companyInput" placeholder="e.g. Sky, Edelman, BBC…" onkeydown="if(event.key==='Enter')generateCompany()"/>
+        <button class="company-gen-btn" onclick="generateCompany()">Go →</button>
+      </div>
+      <div class="targets-list" id="companyTargetsList"></div>
+    </div>
+  </div>
+
+  <!-- 4. PROFILE → CONTEXT -->
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">🧠 Profile → Context</span></div>
+    <div class="card-body">
+      <p class="profile-hint">Paste a LinkedIn profile or bio — headline, experience, anything you can see.</p>
+      <textarea class="profile-textarea" id="profileInput" placeholder="e.g. Senior PR Manager at Edelman. Previously Weber Shandwick. Specialises in consumer and lifestyle brands…"></textarea>
+      <div class="sec-label">Tone</div>
+      <div class="tone-strip">
+        <button class="tone-btn active" data-tone="casual" onclick="setTone(this)">Casual</button>
+        <button class="tone-btn" data-tone="professional" onclick="setTone(this)">Professional</button>
+        <button class="tone-btn" data-tone="direct" onclick="setTone(this)">Direct</button>
+      </div>
+      <button class="analyse-btn" onclick="analyse()">Analyse →</button>
+      <div class="context-out" id="contextOut">
+        <div class="ctx-block">
+          <div class="ctx-block-label">Summary</div>
+          <div class="ctx-tags" id="ctxTags"></div>
+        </div>
+        <div class="ctx-block">
+          <div class="ctx-block-label">Talking Points</div>
+          <ul class="ctx-points" id="ctxPoints"></ul>
+        </div>
+        <div class="ctx-block">
+          <div class="ctx-block-label">Suggested Message</div>
+          <div class="ctx-msg-text" id="ctxMsg"></div>
+          <button class="ctx-copy-btn" onclick="copyCtxMsg()">Copy message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── TOAST ──
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── TARGET BANK ──
+const bank = {
+  agencies: [
+    { t: 'PR account executive London', broad: true },
+    { t: 'PR assistant Bristol', broad: true },
+    { t: 'junior PR consultant UK', broad: true },
+    { t: 'communications executive agency', broad: true },
+    { t: 'PR coordinator London', broad: true },
+    { t: 'PR executive Manchester', broad: true },
+    { t: 'PR graduate trainee agency', broad: true },
+    { t: 'digital PR executive', broad: true },
+    { t: 'PR account executive boutique agency London', broad: false },
+    { t: 'junior PR consultant lifestyle brand agency Bristol', broad: false },
+    { t: 'PR executive B2B technology agency', broad: false },
+    { t: 'consumer PR account executive independent agency', broad: false },
+    { t: 'PR assistant healthcare PR agency London', broad: false },
+    { t: 'PR executive sports sponsorship agency', broad: false },
+    { t: 'PR account coordinator integrated marketing agency', broad: false },
+    { t: 'junior comms consultant creative agency Bristol', broad: false },
+    { t: 'PR executive founder-led boutique agency', broad: false },
+    { t: 'early career PR consultant independent shop London', broad: false },
+    { t: 'PR executive social impact agency', broad: false },
+    { t: 'PR assistant creative comms agency UK', broad: false },
+  ],
+  inhouse: [
+    { t: 'internal communications coordinator UK', broad: true },
+    { t: 'corporate communications executive', broad: true },
+    { t: 'in-house PR manager brand', broad: true },
+    { t: 'brand communications assistant', broad: true },
+    { t: 'comms executive retail', broad: true },
+    { t: 'marketing communications executive', broad: true },
+    { t: 'communications officer charity Bristol', broad: true },
+    { t: 'PR manager FMCG in-house', broad: true },
+    { t: 'communications executive B Corp brand London', broad: false },
+    { t: 'in-house PR assistant fast-growth startup', broad: false },
+    { t: 'comms coordinator arts organisation Bristol', broad: false },
+    { t: 'brand PR executive hospitality sector', broad: false },
+    { t: 'internal comms officer higher education Bristol', broad: false },
+    { t: 'PR executive in-house entertainment brand', broad: false },
+    { t: 'comms assistant NHS or public sector Bristol', broad: false },
+    { t: 'marketing and PR executive direct-to-consumer brand', broad: false },
+    { t: 'PR executive in-house scale-up tech company', broad: false },
+    { t: 'comms executive purpose-driven consumer brand', broad: false },
+  ],
+  recruiters: [
+    { t: 'PR recruiter London', broad: true },
+    { t: 'graduate recruiter communications', broad: true },
+    { t: 'early careers recruiter PR', broad: true },
+    { t: 'marketing recruiter Bristol', broad: true },
+    { t: 'talent acquisition PR agency', broad: true },
+    { t: 'comms recruiter UK', broad: true },
+    { t: 'graduate scheme manager PR or comms firm', broad: false },
+    { t: 'specialist PR and comms recruiter boutique', broad: false },
+    { t: 'talent partner early careers marketing', broad: false },
+    { t: 'campus recruiter PR firm UK', broad: false },
+    { t: 'in-house recruiter creative or comms agency', broad: false },
+    { t: 'early talent manager professional services Bristol', broad: false },
+    { t: 'PR headhunter junior to mid roles London', broad: false },
+    { t: 'creative industries recruiter graduate level', broad: false },
+  ]
+};
+
+let activeFocus = 'agencies';
+function setFocus(btn) {
+  document.querySelectorAll('#focusStrip .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFocus = btn.dataset.focus;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generate() {
+  const used = JSON.parse(localStorage.getItem('li_used') || '[]');
+  let pool;
+  if (activeFocus === 'mixed') {
+    pool = [...bank.agencies, ...bank.inhouse, ...bank.recruiters];
+  } else {
+    pool = [...(bank[activeFocus] || bank.agencies)];
+  }
+
+  const fresh = pool.filter(p => !used.includes(p.t));
+  const source = fresh.length >= 10 ? fresh : shuffle(pool);
+  const picked = shuffle(source).slice(0, 10);
+
+  const newUsed = [...used, ...picked.map(p => p.t)].slice(-100);
+  localStorage.setItem('li_used', JSON.stringify(newUsed));
+
+  document.getElementById('targetsList').innerHTML = picked.map((p, i) => `
+    <button class="target-item" onclick="fireTarget(this, '${p.t.replace(/'/g, "\\'")}')">
+      <span class="target-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="target-text">${p.t}</span>
+      <span class="target-tag">${p.broad ? 'broad' : 'specific'}</span>
+    </button>
+  `).join('');
+}
+
+function fireTarget(el, term) {
+  window.open('https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(term), '_blank');
+  const msg = `Hi [Name], I found you searching "${term}" on LinkedIn. I'm a UWE Bristol PR & Marketing student — would love to connect and learn more about your path into the industry.`;
+  navigator.clipboard.writeText(msg).catch(() => {});
+  el.classList.add('fired');
+  toast('✓ Search opened · Message copied');
+}
+
+// ── MESSAGES ──
+const msgData = {
+  agencies: {
+    connect: `Hi [Name], I'm a UWE Bristol PR student and really admire the work [Agency] does. Would love to connect and learn more about agency life.`,
+    reply: `Thanks for connecting — keen to understand what agency life actually looks like day-to-day. How did you find getting started?`,
+    followup: `Really appreciate it. Is there a particular skill you'd prioritise building before joining an agency?`
+  },
+  alumni: {
+    connect: `Hi [Name], I noticed you're a UWE alum — I'm currently studying PR & Marketing there. Would love to connect with people who've come through the same course.`,
+    reply: `Thanks for connecting! Would love to hear how you found the jump from UWE into the industry — any advice for someone in my position?`,
+    followup: `That's really helpful, appreciate you sharing. Is there anything you wish you'd done differently while at UWE?`
+  },
+  inhouse: {
+    connect: `Hi [Name], I'm a UWE Bristol PR & Marketing student interested in in-house comms. Your career looks really interesting — would love to connect.`,
+    reply: `Thanks for connecting! Curious what drew you to in-house over agency — would love to hear your experience if you have a moment.`,
+    followup: `Really appreciate that. What's the biggest difference in working in-house versus what people expect coming from uni?`
+  },
+  recruiters: {
+    connect: `Hi [Name], I'm a PR & Marketing student at UWE Bristol graduating in 2027 — would love to connect and stay on your radar as I build up experience.`,
+    reply: `Thanks for connecting! I'd love to understand what graduates in PR and comms need to stand out right now.`,
+    followup: `Really useful. Is it worth reaching out again closer to graduation, or would you recommend keeping in touch before then?`
+  },
+  events: {
+    connect: `Hi [Name], I'm a UWE Bristol student looking to break into events. Your role looks like exactly what I'd love to work towards — would love to connect.`,
+    reply: `Thanks for connecting! I'm keen on the events space — how did you get your first foot in the door?`,
+    followup: `Really appreciate that. Would you say experience or qualifications matter more when starting out in events?`
+  }
+};
+
+const msgCategories = [
+  { id: 'agencies', label: 'Agencies' },
+  { id: 'alumni', label: 'Alumni' },
+  { id: 'inhouse', label: 'In-House' },
+  { id: 'recruiters', label: 'Recruiters' },
+  { id: 'events', label: 'Events' }
+];
+
+let activeMsgCat = 'agencies';
+let activeMsgType = 'connect';
+
+function renderMsgCats() {
+  document.getElementById('msgCatStrip').innerHTML = msgCategories.map(c =>
+    `<button class="msg-cat-btn ${c.id === activeMsgCat ? 'active' : ''}" data-cat="${c.id}" onclick="setMsgCat(this)">${c.label}</button>`
+  ).join('');
+}
+
+function setMsgCat(btn) {
+  document.querySelectorAll('.msg-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeMsgCat = btn.dataset.cat;
+  updateMsgTextarea();
+}
+
+function setMsgType(btn) {
+  document.querySelectorAll('.msg-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeMsgType = btn.dataset.type;
+  updateMsgTextarea();
+}
+
+function updateMsgTextarea() {
+  const cat = msgData[activeMsgCat] || msgData.agencies;
+  document.getElementById('msgTextarea').value = cat[activeMsgType] || '';
+  const btn = document.getElementById('msgCopyBtn');
+  btn.textContent = 'Copy message';
+  btn.classList.remove('copied');
+}
+
+function copyMsg() {
+  const text = document.getElementById('msgTextarea').value.trim();
+  if (!text) return;
+  navigator.clipboard.writeText(text).catch(() => {});
+  const btn = document.getElementById('msgCopyBtn');
+  btn.textContent = '✓ Copied';
+  btn.classList.add('copied');
+  toast('Message copied ✓');
+  setTimeout(() => { btn.textContent = 'Copy message'; btn.classList.remove('copied'); }, 1800);
+}
+
+// ── PROFILE → CONTEXT ──
+let activeTone = 'casual';
+function setTone(btn) {
+  document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeTone = btn.dataset.tone;
+}
+
+const knownCompanies = [
+  'Edelman','Weber Shandwick','Fleishman','Golin','Ketchum','Ogilvy','MSL','VCCP','WPP','Publicis',
+  'Dentsu','Havas','Lewis','Portland','Hanover','Finn Partners','BCW','Hill & Knowlton','Channel 4',
+  'BBC','ITV','Sky','Guardian','Condé Nast','Hearst','Nike','Adidas','Unilever','P&G','Nestlé',
+  'Tesco','Marks & Spencer','John Lewis','ASOS','Innocent','Brewdog','Monzo','Deliveroo','Spotify',
+  'Meta','Google','Amazon','Apple','Microsoft','Burson','FleishmanHillard','Cohn & Wolfe'
+];
+
+const seniorityMap = [
+  { kw: ['director','vp','vice president','head of','chief','cco','cmo','partner'], label: 'Director / VP' },
+  { kw: ['senior manager','senior director','associate director','group manager'], label: 'Senior Manager' },
+  { kw: ['manager','account manager'], label: 'Manager' },
+  { kw: ['executive','coordinator','account executive','consultant'], label: 'Executive' },
+  { kw: ['assistant','junior','trainee','intern','graduate'], label: 'Junior / Graduate' },
+];
+
+function analyse() {
+  const raw = document.getElementById('profileInput').value.trim();
+  if (!raw) { toast('Paste some profile text first'); return; }
+
+  const lower = raw.toLowerCase();
+  const found = knownCompanies.filter(c => lower.includes(c.toLowerCase()));
+  const companies = found.length ? found.slice(0, 4) : ['Company not identified'];
+
+  let seniority = 'Not identified';
+  for (const s of seniorityMap) {
+    if (s.kw.some(k => lower.includes(k))) { seniority = s.label; break; }
+  }
+
+  // Talking points
+  const pts = [];
+  if (lower.includes('agency')) pts.push('Agency background — fast-paced, client-facing experience');
+  if (lower.includes('in-house') || lower.includes('brand')) pts.push('In-house experience — strategic, long-term brand perspective');
+  if (lower.includes('graduate') || lower.includes('grad scheme') || lower.includes('trainee')) pts.push('Came through a grad scheme — entry point worth asking about');
+  if (lower.includes('uwe') || lower.includes('bristol')) pts.push('Bristol / UWE connection — natural conversation hook');
+  if (lower.includes('digital') || lower.includes('social media')) pts.push('Digital and social experience — relevant to modern comms');
+  if (lower.includes('campaign') || lower.includes('launch')) pts.push('Has led campaigns or launches — can speak to real tactics');
+  if (lower.includes('award') || lower.includes('prca') || lower.includes('cipr')) pts.push('Industry recognition — clearly invested in the profession');
+  if (seniority === 'Director / VP' || seniority === 'Senior Manager') pts.push('Senior level — worth asking about their career arc early on');
+  if (pts.length === 0) {
+    pts.push('Ask specifically about how they found their first role', 'Reference the company or sector they work in', 'Ask what they look for in junior hires or placement students');
+  }
+
+  // Message
+  const msgs = {
+    casual: lower.includes('agency')
+      ? `Hi [Name], I came across your profile and loved reading about your agency work — I'm a UWE Bristol PR student trying to understand that world better. Would love to connect!`
+      : `Hi [Name], your background caught my eye — I'm a UWE Bristol PR student keen to learn from people working in the industry. Would love to connect!`,
+    professional: lower.includes('agency')
+      ? `Hi [Name], I'm a UWE Bristol PR & Marketing student with a strong interest in agency work. Your background looks like exactly the kind of trajectory I'm trying to understand. Would love to connect.`
+      : `Hi [Name], I'm a UWE Bristol PR & Marketing student with a strong interest in in-house communications. Your career resonates with the direction I'm working towards — would love to connect.`,
+    direct: `Hi [Name], UWE Bristol PR student here, graduating 2027. ${lower.includes('bristol') ? 'Noticed the Bristol connection — ' : ''}would love to connect and ask you one or two questions about how you broke into the industry.`
+  };
+
+  document.getElementById('ctxTags').innerHTML =
+    companies.map(c => `<span class="ctx-tag">${c}</span>`).join('') +
+    `<span class="ctx-tag seniority">${seniority}</span>`;
+  document.getElementById('ctxPoints').innerHTML = pts.slice(0, 5).map(p => `<li>${p}</li>`).join('');
+  document.getElementById('ctxMsg').textContent = msgs[activeTone] || msgs.casual;
+  document.getElementById('contextOut').classList.add('visible');
+  toast('Profile analysed ✓');
+}
+
+function copyCtxMsg() {
+  const text = document.getElementById('ctxMsg').textContent;
+  navigator.clipboard.writeText(text).catch(() => {});
+  toast('Message copied ✓');
+}
+
+// ── COMPANY MODE ──
+function generateCompany() {
+  const raw = document.getElementById('companyInput').value.trim();
+  if (!raw) { toast('Enter a company name first'); return; }
+  const co = raw;
+  const coEnc = encodeURIComponent(co);
+
+  const templates = [
+    { t: `PR manager ${co}`, tag: 'pr team' },
+    { t: `communications manager ${co}`, tag: 'comms team' },
+    { t: `marketing manager ${co} UK`, tag: 'marketing' },
+    { t: `early careers recruiter ${co}`, tag: 'hiring' },
+    { t: `talent acquisition ${co}`, tag: 'hiring' },
+    { t: `${co} alumni PR agency`, tag: 'alumni' },
+    { t: `former ${co} communications now agency`, tag: 'alumni' },
+    { t: `${co} alumni comms London`, tag: 'alumni' },
+    { t: `head of PR ${co}`, tag: 'senior' },
+    { t: `head of communications ${co} UK`, tag: 'senior' },
+  ];
+
+  document.getElementById('companyTargetsList').innerHTML = templates.map((p, i) => `
+    <button class="target-item" onclick="fireTarget(this, '${p.t.replace(/'/g, "\\'")}')">
+      <span class="target-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="target-text">${p.t}</span>
+      <span class="target-tag">${p.tag}</span>
+    </button>
+  `).join('');
+
+  toast(`10 targets generated for ${co}`);
+}
+
+// ── INIT ──
+renderMsgCats();
+updateMsgTextarea();
+</script>
+
+</body>
+</html>
+
